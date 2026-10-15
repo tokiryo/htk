@@ -154,10 +154,10 @@ function init() {
       head.append(name, rm);
       div.append(head);
       box.append(div);
-      weightSlider(div, '形', m.sym, (v) => { m.sym = v; });
-      if (info.gene) weightSlider(div, '左右', m.asym, (v) => { m.asym = v; });
+      weightSlider(div, '対称遺伝子', m.sym, (v) => { m.sym = v; });
+      if (info.gene) weightSlider(div, '非対称遺伝子', m.asym, (v) => { m.asym = v; });
     }
-    add.replaceChildren(new Option('マウスを追加…', ''));
+    add.replaceChildren(new Option('遺伝子を追加…', ''));
     for (const kind of ['symm', 'half', 'ergo']) {
       const og = Object.assign(document.createElement('optgroup'), { label: KIND[kind] });
       for (const info of Object.values(model.mice)) {
