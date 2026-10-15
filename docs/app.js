@@ -4,7 +4,7 @@ import { OrbitControls } from './vendor/OrbitControls.js';
 import { Model, Operator, parseOperator, surfaceOBJ } from './core.js';
 
 const $ = (id) => document.getElementById(id);
-const state = { t: 0, z: new Array(20).fill(0), gene: '', strength: 1, geneZ: new Array(7).fill(0) };
+const state = { t: 0, tAuto: true, z: new Array(20).fill(0), words: {}, mice: [], gene: '', strength: 1, geneZ: new Array(7).fill(0) };
 
 // ---- scene (Z up, the front of the mouse is +Y, the floor is z = 0)
 const view = $('view');
@@ -63,6 +63,8 @@ function makeGeometry(l) {
   return g;
 }
 
+let showT = () => {};
+
 function geneArgument() {
   if (!state.gene) return null;
   return state.gene === 'pcs' ? state.geneZ : state.gene;
@@ -70,7 +72,10 @@ function geneArgument() {
 
 function update(l = 4) {
   if (l !== level) { level = l; geometry.dispose(); geometry = makeGeometry(l); mesh.geometry = geometry; }
-  current = model.cvs(state.t, state.z, geneArgument(), state.strength);
+  const auto = state.tAuto ? model.autoT(state.mice) : null;
+  if (auto !== null) showT(auto);                           // the slider follows the mice
+  current = model.stackCvs({ t: state.t, z: state.z, words: state.words, mice: state.mice, tAuto: state.tAuto,
+                             gene: geneArgument(), strength: state.strength });
   const attr = geometry.getAttribute('position');
   op.surface(current, level, attr.array);
   attr.needsUpdate = true;
@@ -88,37 +93,101 @@ function change() {
 }
 
 // ---- controls
-function slider(parent, label, min, max, step, value, onInput, fmt = (v) => v.toFixed(2)) {
+// a range input and a number input kept in step. The number can be typed beyond the slider's range (to `wide`).
+// onValue(v) sets the state; the shape is redrawn after it. Returns show(v), which only moves the two inputs.
+function bind(range, num, wide, decimals, onValue) {
+  const clamp = (v) => Math.min(wide[1], Math.max(wide[0], v));
+  const show = (v) => { range.value = v; num.value = (+v).toFixed(decimals); };
+  range.addEventListener('input', () => { num.value = (+range.value).toFixed(decimals); onValue(+range.value); change(); });
+  num.addEventListener('input', () => {
+    const v = parseFloat(num.value);
+    if (Number.isFinite(v)) { range.value = clamp(v); onValue(clamp(v)); change(); }
+  });
+  num.addEventListener('change', () => { const v = parseFloat(num.value); show(Number.isFinite(v) ? clamp(v) : +range.value); });
+  return show;
+}
+
+function slider(parent, label, min, max, step, value, onInput, wide = [min, max]) {
   const l = document.createElement('label');
   const input = Object.assign(document.createElement('input'), { type: 'range', min, max, step, value });
-  const out = document.createElement('output');
-  l.append(label, input, out);
+  const num = Object.assign(document.createElement('input'), { type: 'number', className: 'num', step, min: wide[0], max: wide[1] });
+  l.append(label, input, num);
   parent.append(l);
-  const set = (v) => { input.value = v; out.textContent = fmt(+v); };
-  input.addEventListener('input', () => { set(input.value); onInput(+input.value); change(); });
+  const set = bind(input, num, wide, step < 1 ? 2 : 0, onInput);
   set(value);
   return set;
 }
 
+const KIND = { symm: '対称', half: 'ハーフエルゴ', ergo: 'エルゴ' };
+
+// a slider -100 .. +100 (double click: 0)
+function weightSlider(parent, label, value, onInput) {
+  const set = slider(parent, label, -100, 100, 1, value, onInput, [-100, 100]);
+  const input = parent.lastElementChild.querySelector('input');
+  input.addEventListener('dblclick', () => { set(0); onInput(0); change(); });
+  return set;
+}
+
 function init() {
-  const sT = (v) => { $('t').value = v; $('t-o').textContent = (+v).toFixed(2); };
-  $('t').addEventListener('input', () => { state.t = +$('t').value; sT(state.t); change(); });
-  $('strength').addEventListener('input', () => { state.strength = +$('strength').value; $('strength-o').textContent = state.strength.toFixed(2); change(); });
+  showT = bind($('t'), $('t-o'), [-2, 3], 2, (v) => { state.t = v; state.tAuto = false; $('t-auto').checked = false; });
+  const sT = showT;
+  const showStrength = bind($('strength'), $('strength-o'), [0, 3], 2, (v) => { state.strength = v; });
+  $('t-auto').addEventListener('change', () => { state.tAuto = $('t-auto').checked; change(); });
+  const wordSetters = {};
+  for (const [group, keys] of model.wordGroups) {
+    const det = Object.assign(document.createElement('details'), { open: true });
+    det.append(Object.assign(document.createElement('summary'), { textContent: group }));
+    $('words').append(det);
+    for (const k of keys) wordSetters[k] = weightSlider(det, model.words[k].label, 0, (v) => { state.words[k] = v; });
+  }
+  const add = $('mouse-add');
+  const renderMice = () => {
+    const box = $('mice');
+    box.replaceChildren();
+    for (const m of state.mice) {
+      const info = model.mice[m.name], div = document.createElement('div'), head = document.createElement('div');
+      div.className = 'mouse'; head.className = 'head';
+      const name = Object.assign(document.createElement('span'), { textContent: info.label });
+      name.append(Object.assign(document.createElement('small'), { textContent: KIND[info.kind] }));
+      const rm = Object.assign(document.createElement('button'), { textContent: '外す', type: 'button' });
+      rm.onclick = () => { state.mice = state.mice.filter((x) => x !== m); renderMice(); change(); };
+      head.append(name, rm);
+      div.append(head);
+      box.append(div);
+      weightSlider(div, '形', m.sym, (v) => { m.sym = v; });
+      if (info.gene) weightSlider(div, '左右', m.asym, (v) => { m.asym = v; });
+    }
+    add.replaceChildren(new Option('マウスを追加…', ''));
+    for (const kind of ['symm', 'half', 'ergo']) {
+      const og = Object.assign(document.createElement('optgroup'), { label: KIND[kind] });
+      for (const info of Object.values(model.mice)) {
+        if (info.kind === kind && !state.mice.some((m) => m.name === info.name)) og.append(new Option(info.label, info.name));
+      }
+      if (og.children.length) add.append(og);
+    }
+  };
+  add.addEventListener('change', () => {
+    const info = model.mice[add.value];
+    if (info) state.mice.push({ name: info.name, sym: 100, asym: info.gene ? 100 : 0 });
+    renderMice(); change();
+  });
   $('gene').addEventListener('change', () => { state.gene = $('gene').value; $('gene-pcs').hidden = state.gene !== 'pcs'; change(); });
-  const pcSetters = state.z.map((_, i) => slider($('pcs'), `PC${i + 1}`, -3, 3, 0.05, 0, (v) => { state.z[i] = v; }));
-  const geneSetters = state.geneZ.map((_, i) => slider($('gene-pcs'), `G${i + 1}`, -3, 3, 0.05, 0, (v) => { state.geneZ[i] = v; }));
+  const pcSetters = state.z.map((_, i) => slider($('pcs'), `PC${i + 1}`, -3, 3, 0.05, 0, (v) => { state.z[i] = v; }, [-6, 6]));
+  const geneSetters = state.geneZ.map((_, i) => slider($('gene-pcs'), `G${i + 1}`, -3, 3, 0.05, 0, (v) => { state.geneZ[i] = v; }, [-6, 6]));
   $('gene-pcs').hidden = true;
   const sync = () => {
-    sT(state.t); $('strength').value = state.strength; $('strength-o').textContent = state.strength.toFixed(2);
+    sT(state.t); $('t-auto').checked = state.tAuto; renderMice();
+    Object.entries(wordSetters).forEach(([k, set]) => set(state.words[k] || 0));
+    showStrength(state.strength);
     $('gene').value = state.gene; $('gene-pcs').hidden = state.gene !== 'pcs';
     pcSetters.forEach((s, i) => s(state.z[i])); geneSetters.forEach((s, i) => s(state.geneZ[i]));
     update(4);
   };
-  $('reset').onclick = () => { Object.assign(state, { t: 0, z: state.z.map(() => 0), gene: '', strength: 1, geneZ: state.geneZ.map(() => 0) }); sync(); };
+  $('reset').onclick = () => { Object.assign(state, { t: 0, tAuto: true, words: {}, mice: [], z: state.z.map(() => 0), gene: '', strength: 1, geneZ: state.geneZ.map(() => 0) }); sync(); };
   $('random').onclick = () => {
     const g = () => { let s = 0; for (let i = 0; i < 6; i++) s += Math.random(); return (s - 3) * Math.SQRT2; };   // ~N(0, 1)
     state.z = state.z.map(() => Math.max(-3, Math.min(3, g())));
-    state.t = Math.random(); sync();
+    state.t = Math.random(); state.tAuto = false; sync();
   };
   const save = (name, text, type) => {
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([text], { type })), download: name });
@@ -145,9 +214,6 @@ function init() {
   geometry = makeGeometry(4);
   mesh = new THREE.Mesh(geometry, shaded);
   scene.add(mesh);
-  const i = d.info, e = i.leave_one_out_cv_rms;
-  $('about').textContent = `${i.sample_count.symmetric} 体（対称）と ${i.sample_count.asymmetric} 体（エルゴ）から作ったモデル。主成分 ${i.component_count} 個で分散の ${(i.cumulative_variance * 100).toFixed(0)}%。` +
-    ` 1体抜きの再現誤差（CV の RMS、中央値）：対称 ${e.symmetric.median_mm} mm、エルゴ ${e.asymmetric.median_mm} mm。`;
   init();
   resize();
   frame('iso');

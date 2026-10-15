@@ -10,6 +10,12 @@ The mirrored left half and an optional half-ergo "gene" are added by `cvs`.
     python htk.py --t 0.5 --pc 1:+2 --pc 3:-1 --out mouse.json --obj mouse.obj
     python htk.py --t 0 --gene np01 --out np01like.json          # a named half-ergo gene (np01, np01s, u2)
     python htk.py --t 1 --gene-pc 1:+1 --out ergo.json           # the ergo gene model's own axes
+    python htk.py --word height:+25 --word waist:-10 --out m.json  # word axes: -100..100, +-50 is +-2 SD of the real mice
+    python htk.py --mouse sora:100 --mouse zowie_ec2:50:100 --auto-t --out mix.json
+        # mice: <name>:<sym>[:<asym>], +100 = the whole mouse; sym is its shape score, asym its half-ergo gene (14 mice)
+
+Word axes, mouse scores and genes are the "stack" of the Web GUI: every control adds one weighted layer, so the order
+does not matter. See model/words.json and model/mice.json.
 """
 import argparse
 import json
@@ -39,6 +45,8 @@ class HTK:
         self.gene_mean, self.gene_components = np.load(d / 'gene_mean.npy'), np.load(d / 'gene_components.npy')
         self.gene_sigma = np.load(d / 'gene_sigma.npy')
         self.genes = {p.stem: np.load(p) for p in sorted((d / 'genes').glob('*.npy'))}
+        self.words = {w['key']: w for w in json.loads((d / 'words.json').read_text())['axes']}
+        self.mice = {m['name']: m for m in json.loads((d / 'mice.json').read_text())}
         self.patches = self.layout['patches']
         self.flips = {int(k): v for k, v in self.layout['mirror_flips'].items()}
 
@@ -83,6 +91,43 @@ class HTK:
             gene = self.gene(gene)
         return full + strength * np.asarray(gene)
 
+    def auto_t(self, mice=()):
+        """t that follows the mice: the ergo share of their weights (each counts by its larger positive sym / asym),
+        to 0.01; None with no votes (the caller keeps its own t; the research GUI would use 0.5). Ergo mice stand for the asymmetric mean, symmetric and half-ergo mice for the symmetric."""
+        total = ergo = 0.0
+        for m in mice:
+            w = max(m.get('sym') or 0, m.get('asym') or 0, 0) / 100
+            total += w
+            ergo += w if self.mice[m['name']]['kind'] == 'ergo' else 0
+        return None if total == 0 else float(np.floor(100 * ergo / total + 0.5)) / 100
+
+    def code(self, t=0.0, z=(), words=None, mice=(), t_auto=False):
+        """(t, z) after the layers: t + z, + v / 25 * sd * direction for every word axis (v in -100..100),
+        + sym / 100 * (t, z) of every mouse (its score as a deviation from its group's mean)."""
+        c = np.zeros(len(self.sigma) + 1)
+        auto = self.auto_t(mice) if t_auto else None
+        c[0] = t if auto is None else auto
+        c[1:len(z) + 1] = z
+        for k, v in (words or {}).items():
+            w = self.words[k]
+            c += v / 25 * w['sd'] * np.asarray(w['direction'])
+        for m in mice:
+            if m.get('sym'):
+                c += m['sym'] / 100 * np.r_[self.mice[m['name']]['t'], self.mice[m['name']]['z']]
+        return c[0], c[1:]
+
+    def stack_cvs(self, t=0.0, z=(), words=None, mice=(), t_auto=False, gene=None, strength=1.0):
+        """(386, 3) CVs of the stack: code(...) as the shape, then + asym / 100 * gene of every mouse that has one
+        (14: the ergo and half-ergo mice), then the optional gene of `cvs`."""
+        t, z = self.code(t, z, words, mice, t_auto)
+        full = self.cvs(t, z, gene, strength)
+        for m in mice:
+            if m.get('asym'):
+                if not self.mice[m['name']]['gene']:
+                    raise ValueError(f"{m['name']} has no gene (asym)")
+                full = full + m['asym'] / 100 * self.genes[m['name']]
+        return full
+
     def document(self, cvs, name='htk'):
         """A moushroom-cvs-v1 style document: patches of {name, grid, cvs}, U fastest, mm."""
         patches, o = [], 0
@@ -121,6 +166,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--t', type=float, default=0.0, help='symmetric (0) to asymmetric (1) axis; outside 0..1 extrapolates')
     ap.add_argument('--pc', action='append', default=[], help='<number>:<sigma>, e.g. 1:+2 (repeatable)')
+    ap.add_argument('--word', action='append', default=[], help='<key>:<-100..100>, e.g. height:+25 (repeatable; keys in model/words.json)')
+    ap.add_argument('--mouse', action='append', default=[], help='<name>:<sym>[:<asym>], e.g. sora:100 or zowie_ec2:50:100 (repeatable)')
+    ap.add_argument('--auto-t', action='store_true', help='t follows the mice (the ergo share of their weights); --t is ignored')
     ap.add_argument('--gene', help='np01, np01s, u2, or model (the ergo gene model mean)')
     ap.add_argument('--gene-pc', action='append', default=[], help='<number>:<sigma> on the ergo gene model')
     ap.add_argument('--strength', type=float, default=1.0, help='gene multiplier')
@@ -132,7 +180,19 @@ def main():
     gene = a.gene
     if a.gene_pc:
         gene = _pairs(a.gene_pc, len(m.gene_sigma), 'gene-pc')
-    cvs = m.cvs(a.t, z, gene, a.strength)
+    words = {}
+    for spec in a.word:
+        k, v = spec.split(':')
+        if k not in m.words:
+            raise SystemExit(f'unknown word axis {k}: {", ".join(m.words)}')
+        words[k] = float(v)
+    mice = []
+    for spec in a.mouse:
+        name, *w = spec.split(':')
+        if name not in m.mice or not 1 <= len(w) <= 2:
+            raise SystemExit(f'--mouse <name>:<sym>[:<asym>]; names: {", ".join(m.mice)}')
+        mice.append(dict(name=name, sym=float(w[0]), asym=float(w[1]) if len(w) > 1 else 0.0))
+    cvs = m.stack_cvs(a.t, z, words, mice, a.auto_t, gene, a.strength)
     if a.out:
         a.out.write_text(json.dumps(m.document(cvs, a.out.stem)) + '\n')
     if a.obj:

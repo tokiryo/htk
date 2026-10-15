@@ -1,5 +1,5 @@
 // docs/core.js against htk.py: node tests/test_core.mjs <reference.json>
-// reference.json: [{t, z, gene, cvs: [[x,y,z]...386]}] written by tests/make_reference.py
+// reference.json: [{t, z, words, mice, tAuto, gene, strength, cvs: [[x,y,z]...386]}] written by tests/make_reference.py
 import fs from 'node:fs';
 import { Model, Operator, parseOperator } from '../docs/core.js';
 
@@ -7,7 +7,7 @@ const model = new Model(JSON.parse(fs.readFileSync(new URL('../docs/model.json',
 const ref = JSON.parse(fs.readFileSync(process.argv[2]));
 let worst = 0;
 for (const r of ref) {
-  const got = model.cvs(r.t, r.z, r.gene);
+  const got = model.stackCvs(r);
   r.cvs.flat().forEach((v, i) => { worst = Math.max(worst, Math.abs(v - got[i])); });
 }
 if (worst > 1e-4) throw new Error(`core.js differs from htk.py by ${worst} mm`);   // model.json is rounded to 1e-6

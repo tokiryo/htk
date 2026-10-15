@@ -4,7 +4,7 @@
 
 - 左右対称のマウスから、左右非対称（エルゴ）のマウスまでを、1本の軸 `t` でつなぎます。
 - そのほかの形の違いを、20個の主成分 `z` で表します。
-- 左右非対称なマウスの「左右非対称成分」を、遺伝子（gene）として足せます。NP-01、NP-01S、Zowie U2 の3つは、そのまま足せます。
+- 色々なマウスの左右対称成分や非対称成分を遺伝子として足せます。ハーフエルゴのNP-01,NP-01S,U2は特殊な遺伝子として扱っています。
 
 ## 使い方
 
@@ -13,6 +13,8 @@ python3 -m pip install numpy
 python3 htk.py --t 0.5 --pc 1:+2 --pc 3:-1 --out mouse.json --obj mouse.obj
 python3 htk.py --t 0 --gene np01 --out np01like.json
 python3 htk.py --t 1 --gene-pc 1:+1 --out ergo.json
+python3 htk.py --word height:+25 --word waist:-10 --out words.json      # 言葉の軸（-100〜+100、±50 が ±2 SD）
+python3 htk.py --mouse sora:100 --mouse zowie_ec2:50:100 --auto-t --out mix.json   # マウスを重ねる（名前:形:左右）
 ```
 
 ```python
@@ -22,6 +24,7 @@ cvs = m.cvs(t=0.5, z=[2, 0, -1])        # (386, 3) 全体（右半分 + 鏡像�
 cvs = m.cvs(t=0.0, gene='np01')         # 遺伝子を足す
 m.write_obj(cvs, 'mouse.obj')           # 制御網（CV をつないだ四角形）
 doc = m.document(cvs)                   # パッチごとの CV（JSON にできる）
+cvs = m.stack_cvs(words={'height': 25}, mice=[dict(name='zowie_ec2', sym=100, asym=100)], t_auto=True)   # 言葉の軸とマウスの重ね
 ```
 
 ## Web GUI

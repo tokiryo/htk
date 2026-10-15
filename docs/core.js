@@ -75,6 +75,9 @@ export class Model {
     this.comps = d.components.map(this.flat); this.geneMean = this.flat(d.gene_mean);
     this.geneComps = d.gene_components.map(this.flat);
     this.genes = Object.fromEntries(Object.entries(d.genes).map(([k, v]) => [k, this.flat(v)]));
+    this.words = Object.fromEntries(d.words.axes.map((w) => [w.key, w]));
+    this.wordGroups = d.words.groups;                       // [[label, [keys]]]
+    this.mice = Object.fromEntries(d.mice.map((m) => [m.name, m]));
     this.starts = [];
     let o = 0;
     for (const p of this.patches) { this.starts.push(o); o += (p.grid[0] + 1) * (p.grid[1] + 1); }
@@ -113,6 +116,51 @@ export class Model {
     if (gene === null || strength === 0) return full;
     const g = typeof gene === 'string' ? (gene === 'model' ? this.gene() : this.genes[gene]) : this.gene(gene);
     for (let i = 0; i < full.length; i++) full[i] += strength * g[i];
+    return full;
+  }
+
+  // t that follows the mice: the ergo share of their weights (each counts by its larger positive sym / asym), to 0.01;
+  // null with no votes. mice: [{name, sym, asym}]
+  autoT(mice = []) {
+    let total = 0, ergo = 0;
+    for (const m of mice) {
+      const w = Math.max(m.sym || 0, m.asym || 0, 0) / 100;
+      total += w;
+      if (this.mice[m.name].kind === 'ergo') ergo += w;
+    }
+    return total === 0 ? null : Math.floor(100 * ergo / total + 0.5) / 100;
+  }
+
+  // (t, z) after the layers: t + z, + v / 25 sd direction per word axis (v in -100..100),
+  // + sym / 100 (t, z) of every mouse (its score as a deviation from its group's mean)
+  code(t = 0, z = [], words = {}, mice = [], tAuto = false) {
+    const K = this.sigma.length, c = new Float64Array(K + 1), auto = tAuto ? this.autoT(mice) : null;
+    c[0] = auto === null ? t : auto;
+    z.forEach((v, k) => { c[k + 1] = v; });
+    for (const [key, v] of Object.entries(words)) {
+      if (!v) continue;
+      const w = this.words[key], s = v / 25 * w.sd;
+      for (let i = 0; i <= K; i++) c[i] += s * w.direction[i];
+    }
+    for (const m of mice) {
+      if (!m.sym) continue;
+      const mouse = this.mice[m.name];
+      c[0] += m.sym / 100 * mouse.t;
+      for (let i = 0; i < K; i++) c[i + 1] += m.sym / 100 * mouse.z[i];
+    }
+    return { t: c[0], z: Array.from(c.subarray(1)) };
+  }
+
+  // the CVs of the stack (see htk.py stack_cvs): code(...) as the shape, + asym / 100 gene of every mouse that has one,
+  // then the optional gene of cvs()
+  stackCvs({ t = 0, z = [], words = {}, mice = [], tAuto = false, gene = null, strength = 1 } = {}) {
+    const c = this.code(t, z, words, mice, tAuto), full = this.cvs(c.t, c.z, gene, strength);
+    for (const m of mice) {
+      if (!m.asym) continue;
+      const g = this.genes[m.name];
+      if (!g) throw new Error(`${m.name} has no gene`);
+      for (let i = 0; i < full.length; i++) full[i] += m.asym / 100 * g[i];
+    }
     return full;
   }
 
