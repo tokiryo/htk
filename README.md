@@ -47,4 +47,4 @@ cd docs && python3 -m http.server 8000     # http://localhost:8000/
 
 元になったマウスは、Printables の Mouse Shape Tester Megapack（Scout339、CC BY-SA）のものだけです。個人・非商用に限られるデータは使っていません。
 
-> TODO：個々のマウスの出典、モデルデータのライセンス（CC BY-SA 4.0 の予定）、コードのライセンスは、`ATTRIBUTION.md` と `LICENSE` に書きます。（公開前に確定する）
+モデルデータは CC BY-SA 4.0（`LICENSE-DATA`）、コードは MIT（`LICENSE`）です。入力したマウスの一覧と出典は `ATTRIBUTION.md` に書いています。
