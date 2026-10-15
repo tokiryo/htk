@@ -24,35 +24,13 @@ m.write_obj(cvs, 'mouse.obj')           # 制御網（CV をつないだ四角�
 doc = m.document(cvs)                   # パッチごとの CV（JSON にできる）
 ```
 
-## Web GUI（ブラウザだけで動く）
+## Web GUI
 
-`docs/` が静的なページです。サーバーは要りません。つまみ（`t`・遺伝子・主成分20個）を動かすと、SubD の曲面がその場で変わります。CV の JSON と、曲面の OBJ を保存できます。
+`docs/` が静的なページです。つまみ（`t`・遺伝子・主成分20個）を動かすと、SubD の曲面がその場で変わります。CV の JSON と、曲面の OBJ を保存できます。
 
 ```bash
 cd docs && python3 -m http.server 8000     # http://localhost:8000/
 ```
-
-GitHub Pages で公開するときは、Settings → Pages → Source を「Deploy from a branch」、`main` の `/docs` にします。曲面を作る行列（`operator.bin`、約11MB）は、Pages が圧縮して配ります。
-
-## 形の式
-
-右半分の 193 個の CV について、
-
-```
-shape(t, z) = mean_symm + t * axis + Σ z_i * σ_i * component_i
-```
-
-- `t = 0`：対称マウスの平均。`t = 1`：非対称（エルゴ）マウスの平均。範囲の外は外挿になります。
-- `z_i`：標準偏差（σ）の倍数。20個あります。
-- `axis = mean_asym - mean_symm`。`component` は、この軸の成分を除いたうえでの主成分です。
-- 左半分は、右半分の X を反転して作ります（`HTK.mirrored`）。中心線上の CV は X = 0 に固定されます。
-- 遺伝子：左右に 386 点ぶんのずれを足します。`genes/` の3つは1体分そのもの、遺伝子モデル（`--gene-pc`）はエルゴ11体の遺伝子の主成分（7個）です。
-
-## 座標・並び
-
-- 単位は mm。前が +Y。
-- 8パッチ。CV の並びは U が速い順で、`(grid[0]+1) × (grid[1]+1)` 個です。パッチ名と `grid` は `model/layout.json` にあります。
-- パッチ 8〜15 は、パッチ 0〜7 の鏡像です。読む順番は `layout.json` の `mirror_flips` に書いてあります。
 
 ## 精度
 
@@ -63,14 +41,10 @@ shape(t, z) = mean_symm + t * axis + Σ z_i * σ_i * component_i
 | 対称 | 24 | 0.98 mm | 1.99 mm |
 | 非対称（エルゴ） | 11 | 0.89 mm | 1.29 mm |
 
-体数が少ないので、モデルの範囲外の形はうまく出ません。主成分を増やしても1体抜きの精度はほとんど良くならないため、20個にしています。
+体数が少ないので、モデルの範囲外の形はうまく出ません。
 
 ## 出典とライセンス
 
 元になったマウスは、Printables の Mouse Shape Tester Megapack（Scout339、CC BY-SA）のものだけです。個人・非商用に限られるデータは使っていません。
 
 > TODO：個々のマウスの出典、モデルデータのライセンス（CC BY-SA 4.0 の予定）、コードのライセンスは、`ATTRIBUTION.md` と `LICENSE` に書きます。（公開前に確定する）
-
-## 再現
-
-このリポジトリの `model/` は、非公開の研究リポジトリ（moushroom）の `registry/hiratake/lite-v1.1` と `registry/naratake/asym-gene-lite-v1` から、`tools/export_htk.py` で書き出したものです。マウスごとのスコア・誤差・元の形は含まれていません。
