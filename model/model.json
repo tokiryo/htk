@@ -1,6 +1,6 @@
 {
  "name": "HTK",
- "version": "1.1",
+ "version": "1.2",
  "formula": "shape = mean_symm + t * axis + sum_i z_i * sigma[i] * components[i]  (right half, 193 CVs)",
  "axis": "axis = mean_asym - mean_symm: t = 0 is the symmetric mean, t = 1 the asymmetric (ergo) mean",
  "gene": "full 386-CV gene (both halves) added to the mirrored shape: gene_mean + sum_i w_i * gene_sigma[i] * gene_components[i] (first eight patches; the other eight are mirror-antisymmetric), or genes/<name>.npy (NP-01, NP-01S, U2: one mouse each)",

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HTK v1.1</title>
+<title>HTK v1.2</title>
 <script type="importmap">{"imports": {"three": "./vendor/three.module.min.js"}}</script>
 <style>
   :root { --bg: #f4f4f2; --panel: #fff; --ink: #1c1c1e; --muted: #6b6b70; --line: #d9d9d4; --accent: #2f6fdb; --view: #2b2c31; }
@@ -23,7 +23,9 @@
   input[type=range] { width: 100%; accent-color: var(--accent); }
   select, button { font: inherit; padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; }
   button:hover { border-color: var(--accent); }
+  .col { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
   .row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .tnote { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 12px; }
   label.check { display: flex; gap: 6px; grid-template-columns: none; margin: 6px 0; }
   .mouse { border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; margin: 6px 0; }
   .mouse .head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; }
@@ -41,11 +43,11 @@
 </head>
 <body>
 <aside>
-  <h1>HTK v1.1</h1>
+  <h1>HTK v1.2</h1>
 
   <label>t<input id="t" type="range" min="-0.5" max="1.5" step="0.01" value="0"><input id="t-o" class="num" type="number" step="0.01" min="-2" max="3"></label>
 
-  <label class="check"><input id="t-auto" type="checkbox" checked>t を自動（重ねたマウスに合わせる）</label>
+  <div class="tnote"><label class="check"><input id="t-auto" type="checkbox" checked>自動</label><span>symm ⇔ asym</span></div>
 
   <h2>言葉の軸</h2>
   <div id="words"></div>
@@ -54,26 +56,17 @@
   <div class="row"><select id="mouse-add"></select></div>
   <div id="mice"></div>
 
-  <h2>エルゴ遺伝子モデル（左右のずれ）</h2>
-  <div class="row">
-    <select id="gene">
-      <option value="">なし</option>
-      <option value="model">エルゴ遺伝子の平均</option>
-      <option value="pcs">エルゴ遺伝子の主成分</option>
-    </select>
-  </div>
-  <label>強さ<input id="strength" type="range" min="0" max="1.5" step="0.05" value="1"><input id="strength-o" class="num" type="number" step="0.05" min="0" max="3"></label>
-  <div id="gene-pcs"></div>
-
   <h2>形の主成分（σ）</h2>
   <div id="pcs"></div>
 
   <h2>操作</h2>
-  <div class="row">
+  <div class="col">
     <button id="reset">リセット</button>
     <button id="random">ランダム</button>
-    <button id="save-json">CV を保存（JSON）</button>
-    <button id="save-obj">曲面を保存（OBJ）</button>
+    <button id="save-json">JSONで保存</button>
+    <button id="load-json">JSONを開く</button>
+    <input id="file-json" type="file" accept=".json,application/json" hidden>
+    <button id="save-obj">OBJで保存</button>
   </div>
 </aside>
 <main>

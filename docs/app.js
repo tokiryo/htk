@@ -1,10 +1,10 @@
-// HTK v1.1 web GUI: sliders -> the model (core.js) -> the SubD surface, all in the browser.
+// HTK v1.2 web GUI: sliders -> the model (core.js) -> the SubD surface, all in the browser.
 import * as THREE from 'three';
 import { OrbitControls } from './vendor/OrbitControls.js';
 import { Model, Operator, parseOperator, surfaceOBJ } from './core.js';
 
 const $ = (id) => document.getElementById(id);
-const state = { t: 0, tAuto: true, z: new Array(20).fill(0), words: {}, mice: [], gene: '', strength: 1, geneZ: new Array(7).fill(0) };
+const state = { t: 0, tAuto: true, z: new Array(20).fill(0), words: {}, mice: [] };
 
 // ---- scene (Z up, the front of the mouse is +Y, the floor is z = 0)
 const view = $('view');
@@ -35,7 +35,7 @@ const zebra = new THREE.ShaderMaterial({
   side: THREE.DoubleSide,
 });
 
-let model, op, mesh, geometry, level = 4, current;
+let model, op, mesh, geometry, level = 4, current, imported = null;   // imported: CVs of a loaded file, shown until a control moves
 
 function resize() {
   renderer.setSize(view.clientWidth, view.clientHeight);
@@ -65,17 +65,11 @@ function makeGeometry(l) {
 
 let showT = () => {};
 
-function geneArgument() {
-  if (!state.gene) return null;
-  return state.gene === 'pcs' ? state.geneZ : state.gene;
-}
-
 function update(l = 4) {
   if (l !== level) { level = l; geometry.dispose(); geometry = makeGeometry(l); mesh.geometry = geometry; }
   const auto = state.tAuto ? model.autoT(state.mice) : null;
   if (auto !== null) showT(auto);                           // the slider follows the mice
-  current = model.stackCvs({ t: state.t, z: state.z, words: state.words, mice: state.mice, tAuto: state.tAuto,
-                             gene: geneArgument(), strength: state.strength });
+  current = imported || model.stackCvs({ t: state.t, z: state.z, words: state.words, mice: state.mice, tAuto: state.tAuto });
   const attr = geometry.getAttribute('position');
   op.surface(current, level, attr.array);
   attr.needsUpdate = true;
@@ -87,6 +81,7 @@ function update(l = 4) {
 
 let settle = 0;
 function change() {
+  imported = null;
   update(3);                                                 // fast while dragging
   clearTimeout(settle);
   settle = setTimeout(() => update(4), 150);
@@ -131,7 +126,6 @@ function weightSlider(parent, label, value, onInput) {
 function init() {
   showT = bind($('t'), $('t-o'), [-2, 3], 2, (v) => { state.t = v; state.tAuto = false; $('t-auto').checked = false; });
   const sT = showT;
-  const showStrength = bind($('strength'), $('strength-o'), [0, 3], 2, (v) => { state.strength = v; });
   $('t-auto').addEventListener('change', () => { state.tAuto = $('t-auto').checked; change(); });
   const wordSetters = {};
   for (const [group, keys] of model.wordGroups) {
@@ -168,32 +162,53 @@ function init() {
   };
   add.addEventListener('change', () => {
     const info = model.mice[add.value];
-    if (info) state.mice.push({ name: info.name, sym: 100, asym: info.gene ? 100 : 0 });
+    if (info) state.mice.push({ name: info.name, sym: 0, asym: 0 });
     renderMice(); change();
   });
-  $('gene').addEventListener('change', () => { state.gene = $('gene').value; $('gene-pcs').hidden = state.gene !== 'pcs'; change(); });
   const pcSetters = state.z.map((_, i) => slider($('pcs'), `PC${i + 1}`, -3, 3, 0.05, 0, (v) => { state.z[i] = v; }, [-6, 6]));
-  const geneSetters = state.geneZ.map((_, i) => slider($('gene-pcs'), `G${i + 1}`, -3, 3, 0.05, 0, (v) => { state.geneZ[i] = v; }, [-6, 6]));
-  $('gene-pcs').hidden = true;
   const sync = () => {
     sT(state.t); $('t-auto').checked = state.tAuto; renderMice();
     Object.entries(wordSetters).forEach(([k, set]) => set(state.words[k] || 0));
-    showStrength(state.strength);
-    $('gene').value = state.gene; $('gene-pcs').hidden = state.gene !== 'pcs';
-    pcSetters.forEach((s, i) => s(state.z[i])); geneSetters.forEach((s, i) => s(state.geneZ[i]));
+    pcSetters.forEach((s, i) => s(state.z[i]));
     update(4);
   };
-  $('reset').onclick = () => { Object.assign(state, { t: 0, tAuto: true, words: {}, mice: [], z: state.z.map(() => 0), gene: '', strength: 1, geneZ: state.geneZ.map(() => 0) }); sync(); };
+  $('reset').onclick = () => { Object.assign(state, { t: 0, tAuto: true, words: {}, mice: [], z: state.z.map(() => 0) }); sync(); };
   $('random').onclick = () => {
     const g = () => { let s = 0; for (let i = 0; i < 6; i++) s += Math.random(); return (s - 3) * Math.SQRT2; };   // ~N(0, 1)
     state.z = state.z.map(() => Math.max(-3, Math.min(3, g())));
-    state.t = Math.random(); state.tAuto = false; sync();
+    state.t = Math.random(); sync();
   };
   const save = (name, text, type) => {
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([text], { type })), download: name });
     a.click(); URL.revokeObjectURL(a.href);
   };
-  $('save-json').onclick = () => save('htk.json', JSON.stringify(model.document(current)) + '\n', 'application/json');
+  // the saved file is the CV document plus the stack that made it, so loading it brings the sliders back
+  $('save-json').onclick = () => {
+    const doc = model.document(current);
+    if (!imported) doc.htk = { t: state.t, tAuto: state.tAuto, z: state.z, words: state.words, mice: state.mice };
+    save('htk.json', JSON.stringify(doc) + '\n', 'application/json');
+  };
+  $('load-json').onclick = () => $('file-json').click();
+  $('file-json').addEventListener('change', async () => {
+    const file = $('file-json').files[0];
+    $('file-json').value = '';
+    if (!file) return;
+    try {
+      const d = JSON.parse(await file.text());
+      if (d.htk) {                                           // a file saved here: the stack comes back
+        const h = d.htk;
+        if (h.mice.some((m) => !model.mice[m.name]) || Object.keys(h.words).some((k) => !model.words[k])) throw new Error('知らない軸かマウスが入っています');
+        Object.assign(state, { t: h.t, tAuto: h.tAuto, z: model.sigma.map((_, i) => h.z[i] || 0), words: h.words, mice: h.mice });
+        imported = null;
+        sync();
+      } else {                                               // any CV document: shown as it is
+        imported = model.fromDocument(d);
+        update(4);
+      }
+    } catch (e) {
+      $('info').textContent = `読み込めませんでした：${e.message}`;
+    }
+  });
   $('save-obj').onclick = () => {
     const l = op.level(4);
     save('htk_surface.obj', surfaceOBJ(op.surface(current, 4), l.faces), 'text/plain');

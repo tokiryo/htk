@@ -1,4 +1,4 @@
-# HTK v1.1
+# HTK v1.2
 
 ゲーミングマウスのシェイプの小さな統計モデルです。マウスの SubD ケージ（SP パッチの制御頂点、CV）を、数個のつまみ（軸）で作れます。numpy だけで動きます。（English: a small statistical shape model of gaming mice, as SubD-cage control vertices; numpy only.）
 

@@ -1,4 +1,4 @@
-// HTK v1.1 core (no DOM, no three.js): the shape model and the CV -> SubD surface operator. Same maths as htk.py.
+// HTK v1.2 core (no DOM, no three.js): the shape model and the CV -> SubD surface operator. Same maths as htk.py.
 //   half(t, z)  = mean_symm + t axis + sum z_i sigma_i component_i      right half, 193 CVs
 //   cvs(...)    = the 386 CVs of the whole cage (+ a gene)
 //   surface     = S (Mx cv_x, Myz cv_y, Myz cv_z)                       SubD level 3 or 4 (Bezier patches, welded)
@@ -162,6 +162,20 @@ export class Model {
       for (let i = 0; i < full.length; i++) full[i] += m.asym / 100 * g[i];
     }
     return full;
+  }
+
+  // the 386 CVs (flat) of a CV document: 16 patches, or the 8 of the right half (mirrored)
+  fromDocument(d) {
+    const patches = d.patches;
+    if (!Array.isArray(patches) || ![8, 16].includes(patches.length)) throw new Error('パッチが 8 個か 16 個の CV の JSON ではありません');
+    const flat = [];
+    patches.forEach((p, k) => {
+      const g = this.patches[k % 8].grid;
+      if (p.grid[0] !== g[0] || p.grid[1] !== g[1] || p.cvs.length !== (g[0] + 1) * (g[1] + 1)) throw new Error(`パッチ ${k} の形がモデルと違います`);
+      for (const c of p.cvs) flat.push(c[0], c[1], c[2]);
+    });
+    const cvs = Float64Array.from(flat);
+    return patches.length === 16 ? cvs : this.mirrored(cvs, [-1, 1, 1]);
   }
 
   document(cvs, name = 'htk') {

@@ -1,4 +1,4 @@
-"""HTK v1.1 — a small statistical shape model of gaming mice, as SubD-cage control vertices (CVs).
+"""HTK v1.2 — a small statistical shape model of gaming mice, as SubD-cage control vertices (CVs).
 
 numpy only. Shape (right half, 193 CVs, mm, +Y is the front):
 
