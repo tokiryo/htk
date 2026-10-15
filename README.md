@@ -24,6 +24,16 @@ m.write_obj(cvs, 'mouse.obj')           # 制御網（CV をつないだ四角�
 doc = m.document(cvs)                   # パッチごとの CV（JSON にできる）
 ```
 
+## Web GUI（ブラウザだけで動く）
+
+`docs/` が静的なページです。サーバーは要りません。つまみ（`t`・遺伝子・主成分20個）を動かすと、SubD の曲面がその場で変わります。CV の JSON と、曲面の OBJ を保存できます。
+
+```bash
+cd docs && python3 -m http.server 8000     # http://localhost:8000/
+```
+
+GitHub Pages で公開するときは、Settings → Pages → Source を「Deploy from a branch」、`main` の `/docs` にします。曲面を作る行列（`operator.bin`、約11MB）は、Pages が圧縮して配ります。
+
 ## 形の式
 
 右半分の 193 個の CV について、
