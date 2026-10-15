@@ -1,6 +1,6 @@
 # HTK v1.1
 
-ゲーミングマウスの形の小さな統計モデルです。マウスの SubD ケージ（SP パッチの制御頂点、CV）を、数個のつまみ（軸）で作れます。numpy だけで動きます。（English: a small statistical shape model of gaming mice, as SubD-cage control vertices; numpy only.）
+ゲーミングマウスのシェイプの小さな統計モデルです。マウスの SubD ケージ（SP パッチの制御頂点、CV）を、数個のつまみ（軸）で作れます。numpy だけで動きます。（English: a small statistical shape model of gaming mice, as SubD-cage control vertices; numpy only.）
 
 - 左右対称のマウスから、左右非対称（エルゴ）のマウスまでを、1本の軸 `t` でつなぎます。
 - そのほかの形の違いを、20個の主成分 `z` で表します。
