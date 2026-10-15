@@ -6,13 +6,16 @@
 |---|---|
 | コード：`htk.py`、`docs/index.html`、`docs/app.js`、`docs/core.js`、`tests/` | MIT（`LICENSE`） |
 | モデルデータ：`model/`、`docs/model.json`、`docs/operator.bin` | CC BY-SA 4.0（`LICENSE-DATA`） |
+| 加工済みの四角形メッシュ：`meshes/*.obj` | CC BY-SA 4.0（`LICENSE-DATA`） |
 | `docs/vendor/` の three.js 関連 | MIT（Copyright 2010-2024 Three.js Authors）。詳細は `docs/vendor/README.md` |
 
 ## 元データ
 
 モデルは、Printables の **Mouse Shape Tester Megapack**（作者：Scout339、CC BY-SA）に含まれるマウスの形から作った数値です。
 モデルデータは、その派生物として CC BY-SA 4.0 で配布します。利用するときは、この出典を示し、改変した場合は同じライセンスで公開してください。
-個人・非商用に限られるデータは使っていません。マウスごとのスコア・誤差・元の形は含みません。
+個人・非商用に限られるデータは使っていません。マウスごとのスコア・誤差・元の形（元のメッシュ）は含みません。
+
+`meshes/` の OBJ は、このモデルで各マウスを再現し、SubD の曲面から作った四角形メッシュです（Web GUI で保存できるものと同じ種類です）。元のメッシュそのものではありませんが、元のマウスの形から作ったものなので、モデルデータと同じく CC BY-SA 4.0 で配布します。
 
 ## 入力したマウス（内部名）
 
