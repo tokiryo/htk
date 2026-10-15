@@ -1,5 +1,7 @@
 # HTK v1.2
 
+Web GUI：https://tokiryo.github.io/htk/
+
 ゲーミングマウスのシェイプの小さな統計モデルです。マウスの SubD ケージ（SP パッチの制御頂点、CV）を、数個のつまみ（軸）で作れます。numpy だけで動きます。（English: a small statistical shape model of gaming mice, as SubD-cage control vertices; numpy only.）
 
 - 左右対称のマウスから、左右非対称（エルゴ）のマウスまでを、1本の軸 `t` でつなぎます。
@@ -28,6 +30,8 @@ cvs = m.stack_cvs(words={'height': 25}, mice=[dict(name='zowie_ec2', sym=100, as
 ```
 
 ## Web GUI
+
+https://tokiryo.github.io/htk/
 
 `docs/` が静的なページです。つまみ（`t`・遺伝子・主成分20個）を動かすと、SubD の曲面がその場で変わります。CV の JSON と、曲面の OBJ を保存できます。
 
