@@ -115,9 +115,9 @@ function slider(parent, label, min, max, step, value, onInput, wide = [min, max]
 
 const KIND = { symm: '対称', half: 'ハーフエルゴ', ergo: 'エルゴ' };
 
-// a slider -100 .. +100 (double click: 0)
-function weightSlider(parent, label, value, onInput) {
-  const set = slider(parent, label, -100, 100, 1, value, onInput, [-100, 100]);
+// a slider -limit .. +limit (double click: 0)
+function weightSlider(parent, label, value, onInput, limit = 100) {
+  const set = slider(parent, label, -limit, limit, 1, value, onInput, [-limit, limit]);
   const input = parent.lastElementChild.querySelector('input');
   input.addEventListener('dblclick', () => { set(0); onInput(0); change(); });
   return set;
@@ -132,7 +132,7 @@ function init() {
     const det = Object.assign(document.createElement('details'), { open: true });
     det.append(Object.assign(document.createElement('summary'), { textContent: group }));
     $('words').append(det);
-    for (const k of keys) wordSetters[k] = weightSlider(det, model.words[k].label, 0, (v) => { state.words[k] = v; });
+    for (const k of keys) wordSetters[k] = weightSlider(det, model.words[k].label, 0, (v) => { state.words[k] = v; }, 50);
   }
   const add = $('mouse-add');
   const renderMice = () => {
