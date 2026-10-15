@@ -1,0 +1,27 @@
+{
+ "name": "HTK",
+ "version": "1.1",
+ "formula": "shape = mean_symm + t * axis + sum_i z_i * sigma[i] * components[i]  (right half, 193 CVs)",
+ "axis": "axis = mean_asym - mean_symm: t = 0 is the symmetric mean, t = 1 the asymmetric (ergo) mean",
+ "gene": "full 386-CV gene (both halves) added to the mirrored shape: gene_mean + sum_i w_i * gene_sigma[i] * gene_components[i] (first eight patches; the other eight are mirror-antisymmetric), or genes/<name>.npy (NP-01, NP-01S, U2: one mouse each)",
+ "component_count": 20,
+ "gene_component_count": 7,
+ "sample_count": {
+  "symmetric": 24,
+  "asymmetric": 11
+ },
+ "cumulative_variance": 0.9703,
+ "leave_one_out_cv_rms": {
+  "symmetric": {
+   "count": 24,
+   "median_mm": 0.982,
+   "max_mm": 1.994
+  },
+  "asymmetric": {
+   "count": 11,
+   "median_mm": 0.887,
+   "max_mm": 1.295
+  }
+ },
+ "error_definition": "per-mouse RMS of the CV Euclidean distance (mm) when that mouse is left out of the fit; median and max over mice"
+}

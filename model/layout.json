@@ -1,0 +1,73 @@
+{
+ "cv_count": 193,
+ "weld_distance": 0.05,
+ "patches": [
+  {
+   "name": "SP_RetopoFlow_001",
+   "grid": [
+    4,
+    3
+   ]
+  },
+  {
+   "name": "SP_RetopoFlow_001.001",
+   "grid": [
+    5,
+    3
+   ]
+  },
+  {
+   "name": "SP_RetopoFlow_001.002",
+   "grid": [
+    4,
+    4
+   ]
+  },
+  {
+   "name": "SP_RetopoFlow_001.003",
+   "grid": [
+    5,
+    3
+   ]
+  },
+  {
+   "name": "SP_RetopoFlow_001.004",
+   "grid": [
+    4,
+    3
+   ]
+  },
+  {
+   "name": "SP_RetopoFlow_001.005",
+   "grid": [
+    4,
+    3
+   ]
+  },
+  {
+   "name": "SP_RetopoFlow_001.006",
+   "grid": [
+    5,
+    4
+   ]
+  },
+  {
+   "name": "SP_RetopoFlow_001.007",
+   "grid": [
+    5,
+    4
+   ]
+  }
+ ],
+ "mirror_flips": {
+  "8": "flipU",
+  "9": "flipV",
+  "10": "flipV",
+  "11": "flipU",
+  "12": "flipV",
+  "13": "flipU",
+  "14": "flipU",
+  "15": "flipU"
+ },
+ "notes": "mean_symm/axis/components hold the 193 CVs of the right half (patches 0-7, X >= 0), in mm, +Y is the front. CV order inside a patch: U fastest, (grid[0]+1) x (grid[1]+1) CVs. Patch j (8..15) is patch j-8 with X negated, read in the order given by mirror_flips. centerline marks the CVs held at X = 0."
+}
