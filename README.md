@@ -2,7 +2,7 @@
 
 Web GUI：https://tokiryo.github.io/htk/
 
-ゲーミングマウスのシェイプの小さな統計モデルです。マウスの SubD ケージ（SP パッチの制御頂点、CV）を、数個のつまみ（軸）で作れます。numpy だけで動きます。（English: a small statistical shape model of gaming mice, as SubD-cage control vertices; numpy only.）
+ゲーミングマウスのシェイプの小さな統計モデルです。マウスの SubD ケージ（SP パッチの制御頂点、CV）を、数個のつまみ（軸）で作れます。numpy だけで動きます。
 
 - 左右対称のマウスから、左右非対称（エルゴ）のマウスまでを、1本の軸 `t` でつなぎます。
 - そのほかの形の違いを、20個の主成分 `z` で表します。
@@ -52,6 +52,6 @@ cd docs && python3 -m http.server 8000     # http://localhost:8000/
 
 ## 出典とライセンス
 
-元になったマウスは、Printables の Mouse Shape Tester Megapack（Scout339、CC BY-SA）のものだけです。個人・非商用に限られるデータは使っていません。
+元になったマウスは、Printables の Mouse Shape Tester Megapack（Scout339、CC BY-SA）（https://www.printables.com/model/113133-mouse-shape-tester-megapack）のものだけです。個人・非商用に限られるデータは使っていません。
 
 モデルデータは CC BY-SA 4.0（`LICENSE-DATA`）、コードは MIT（`LICENSE`）です。入力したマウスの一覧と出典は `ATTRIBUTION.md` に書いています。
